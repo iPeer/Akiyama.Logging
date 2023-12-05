@@ -223,6 +223,7 @@ namespace Akiyama.Logging
 
             line = string.Format("[{0}] [{1}] {2}: {3}", time, prefix.PadRight(7, ' '), this.Name, msg);
 #if DEBUG
+            System.Diagnostics.Debug.WriteLine(line);
             Console.WriteLine(line);
 #endif
             this.AddLineToCache(line);
