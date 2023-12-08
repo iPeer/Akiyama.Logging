@@ -54,7 +54,7 @@ namespace Akiyama.Logging
         /// <br />If a file already exists with <c>num</c> equal to this variable, it is deleted.
         /// </para>
         /// </remarks>
-        public int MaxOldFiles {  get; private set; }
+        public int MaxOldFiles { get; private set; }
 
         /// <summary>
         /// Holds a list of cached log messages that need to be written to file.
@@ -70,6 +70,8 @@ namespace Akiyama.Logging
         /// <b>Note</b>: This is disabled (true) by default when running under .NET Framework.
         /// </summary>
         private bool DebugOutputDebugDisabled = System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription.StartsWith(".NET Framework");
+
+        private bool _renameInProgress = false;
 
         // TODO: docstring
         public Logger(string name, LoggerType type = LoggerType.CACHED, int cacheThreshold = 30, LogLevel defaultLevel = LogLevel.INFO, string logsDirectory = "./logs/", int maxOld = 5)
@@ -93,6 +95,31 @@ namespace Akiyama.Logging
         {
             this.Level = level;
             this.Log($"Log level changed to '{this.Level}'.", (LogLevel)999);
+        }
+        /// <inheritdoc cref="Logger.Setlevel(LogLevel)"/>
+        public void SetLevel(LogLevel level) => Setlevel(level);
+
+        /// <inheritdoc cref="Logger.SetName(string, bool)"/>
+        public void Rename(string name, bool renameFile = true) => SetName(name, renameFile);
+        /// <summary>
+        /// Changes the name of this <see cref="Logger"/> to the name specified.<br />
+        /// If <paramref name="renameFile"/> is true, the log file on disk will also be renamed (if it exists).
+        /// </summary>
+        /// <param name="name">The new name of the logger</param>
+        /// <param name="renameFile"></param>
+        public void SetName(string name, bool renameFile = true)
+        {
+            this._renameInProgress = true;
+            string oldName = this.Name;
+            this.Name = name;
+            string oldPath = this.LogFilePath;
+            this.LogFilePath = Path.Combine(Path.GetFullPath(this.LogsDirectory), $"{this.Name}.log");
+            if (renameFile && File.Exists(oldPath))
+            {
+                File.Move(oldPath, this.LogFilePath);
+            }
+            this._renameInProgress = false;
+            this.Log($"Logger name was changed to '{this.Name}' (was '{oldName}').", (LogLevel)999);
         }
 
         /// <summary>
@@ -261,7 +288,7 @@ namespace Akiyama.Logging
         private void AddLineToCache(string line)
         {
             this.OutputCache.Add(line);
-            if (this.Type == LoggerType.REALTIME || this.OutputCache.Count >= this.CachedThreshold)
+            if (!this._renameInProgress && (this.Type == LoggerType.REALTIME || this.OutputCache.Count >= this.CachedThreshold))
             {
                 this.WritePendingLines();
             }

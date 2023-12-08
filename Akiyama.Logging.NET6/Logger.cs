@@ -71,6 +71,8 @@ namespace Akiyama.Logging
         /// </summary>
         private bool DebugOutputDebugDisabled = false;
 
+        private bool _renameInProgress = false;
+
         private bool Disposed = false;
 
         // TODO: docstring
@@ -100,7 +102,31 @@ namespace Akiyama.Logging
             this.Level = level;
             this.Log($"Log level changed to '{this.Level}'.", (LogLevel)999);
         }
+        /// <inheritdoc cref="Logger.Setlevel(LogLevel)"/>
+        public void SetLevel(LogLevel level) => Setlevel(level);
 
+        /// <inheritdoc cref="Logger.SetName(string, bool)"/>
+        public void Rename(string name, bool renameFile = true) => SetName(name, renameFile);
+        /// <summary>
+        /// Changes the name of this <see cref="Logger"/> to the name specified.<br />
+        /// If <paramref name="renameFile"/> is true, the log file on disk will also be renamed (if it exists).
+        /// </summary>
+        /// <param name="name">The new name of the logger</param>
+        /// <param name="renameFile"></param>
+        public void SetName(string name, bool renameFile = true)
+        {
+            this._renameInProgress = true;
+            string oldName = this.Name;
+            this.Name = name;
+            string oldPath = this.LogFilePath;
+            this.LogFilePath = Path.Combine(Path.GetFullPath(this.LogsDirectory), $"{this.Name}.log");
+            if (renameFile && File.Exists(oldPath))
+            {
+                File.Move(oldPath, this.LogFilePath);
+            }
+            this._renameInProgress = false;
+            this.Log($"Logger name was changed to '{this.Name}' (was '{oldName}').", (LogLevel)999);
+        }
         /// <summary>
         /// Causes this <see cref="Logger"/> to push all of its pending lines (if any) to its respective log file.
         /// </summary>
@@ -267,7 +293,7 @@ namespace Akiyama.Logging
         private void AddLineToCache(string line)
         {
             this.OutputCache.Add(line);
-            if (this.Type == LoggerType.REALTIME || this.OutputCache.Count >= this.CachedThreshold)
+            if (!this._renameInProgress && (this.Type == LoggerType.REALTIME || this.OutputCache.Count >= this.CachedThreshold))
             {
                 this.WritePendingLines();
             }
