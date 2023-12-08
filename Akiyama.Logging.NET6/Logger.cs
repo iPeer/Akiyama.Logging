@@ -134,10 +134,10 @@ namespace Akiyama.Logging
         {
             if (this.OutputCache.Count > 0)
             {
+                List<string> cache = this.OutputCache.ToList();
+                this.OutputCache.Clear();
                 using (StreamWriter sr = new StreamWriter(this.LogFilePath, append: true, encoding: Encoding.UTF8))
                 {
-                    List<string> cache = this.OutputCache.ToList();
-                    this.OutputCache.Clear();
                     sr.Write(string.Join("\n", cache) + "\n");
                     cache.Clear();
                 }
