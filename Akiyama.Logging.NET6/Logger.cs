@@ -88,6 +88,7 @@ namespace Akiyama.Logging
         public void Setlevel(LogLevel level)
         {
             this.Level = level;
+            this.Log($"Log level changed to '{this.Level}'.", (LogLevel)999);
         }
 
         /// <summary>
@@ -207,6 +208,9 @@ namespace Akiyama.Logging
             string prefix = "INFO";
             switch (level)
             {
+                case LogLevel.INFO:
+                    prefix = "INFO";
+                    break;
                 case LogLevel.WARNING:
                     prefix = "WARNING";
                     break;
@@ -215,6 +219,9 @@ namespace Akiyama.Logging
                     break;
                 case LogLevel.DEBUG:
                     prefix = "DEBUG";
+                    break;
+                default:
+                    prefix = "-------";
                     break;
             }
 
