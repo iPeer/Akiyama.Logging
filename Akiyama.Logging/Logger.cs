@@ -192,7 +192,7 @@ namespace Akiyama.Logging
         /// <param name="str">The <see cref="String"/> to log.</param>
         /// <param name="level">The <see cref="LogLevel"/> to log this message as.</param>
         /// <param name="fillers"><c>(optional)</c> The values you wish to use for string formatting. See <see href="https://learn.microsoft.com/en-us/dotnet/api/system.string.format?view=netframework-4.7.2"/>.</param>
-        public void Log(string str, LogLevel level, params object[] fillers)
+        private void Log(string str, LogLevel level, params object[] fillers)
         {
 
             if (level < this.Level) { return; }
