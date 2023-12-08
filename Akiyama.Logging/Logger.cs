@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -60,6 +61,16 @@ namespace Akiyama.Logging
         /// </summary>
         private readonly List<string> OutputCache = new List<string>();
 
+        /// <summary>
+        /// If <b>true</b>, disables output to <see cref="System.Console"/> when compiled in debug mode.
+        /// </summary>
+        private bool DebugOutputConsoleDisabled = false;
+        /// <summary>
+        /// If <b>true</b>, disables output to <see cref="System.Diagnostics.Debug"/> when compiled in debug mode.<br />
+        /// <b>Note</b>: This is disabled (true) by default when running under .NET Framework.
+        /// </summary>
+        private bool DebugOutputDebugDisabled = System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription.StartsWith(".NET Framework");
+
         // TODO: docstring
         public Logger(string name, LoggerType type = LoggerType.CACHED, int cacheThreshold = 30, LogLevel defaultLevel = LogLevel.INFO, string logsDirectory = "./logs/", int maxOld = 5)
         {
@@ -99,6 +110,19 @@ namespace Akiyama.Logging
                     cache.Clear();
                 }
             }
+        }
+
+        /// <summary>
+        /// Sets which output methods are used for debug builds<br />
+        /// <b>Note</b>: This function is only available when running under a debug context. Calls to this function when <b>not</b> under debug will do nothing.
+        /// </summary>
+        /// <param name="console">Whether output to <see cref="System.Console"/> is enabled.</param>
+        /// <param name="debug">Whether output to <see cref="System.Diagnostics.Debug"/> is enabled.<br /><b>Note</b>: When running under .NET Framework, this defaults to disabled. Additionally, this setting is ignored if no debugger is detected.</param>
+        [Conditional("DEBUG")]
+        public void SupressDebugOutput(bool console = false, bool debug = false)
+        {
+            this.DebugOutputConsoleDisabled = console;
+            this.DebugOutputDebugDisabled = debug;
         }
 
         /// <summary>
@@ -223,8 +247,8 @@ namespace Akiyama.Logging
 
             line = string.Format("[{0}] [{1}] {2}: {3}", time, prefix.PadRight(7, ' '), this.Name, msg);
 #if DEBUG
-            System.Diagnostics.Debug.WriteLine(line);
-            Console.WriteLine(line);
+            if (!this.DebugOutputDebugDisabled && Debugger.IsAttached) { System.Diagnostics.Debug.WriteLine(line); }
+            if (!this.DebugOutputConsoleDisabled) { Console.WriteLine(line); }
 #endif
             this.AddLineToCache(line);
 

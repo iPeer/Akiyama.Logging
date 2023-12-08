@@ -11,6 +11,11 @@ namespace Akiyama.Logging.Tests
             Logger l2 = new Logger("World", type: LoggerType.REALTIME, maxOld: 1);
             Logger l3 = new Logger("Debug_Test", type: LoggerType.REALTIME, maxOld: 1);
             Logger l4 = new Logger("NonDefaultPath", type: LoggerType.REALTIME, maxOld: 1, logsDirectory: "./logs/wow/look/at/this");
+            
+            foreach (Logger logger in new Logger[] { l1, l2, l3, l4 }) 
+            {
+                logger.SupressDebugOutput(console: false, debug: false);
+            }
 
             for (int x = 0; x < 5; x++)
             {
