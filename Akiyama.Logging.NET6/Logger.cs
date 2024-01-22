@@ -28,6 +28,10 @@ namespace Akiyama.Logging
         /// </summary>
         public int CachedThreshold { get; private set; }
         /// <summary>
+        /// Indicates the maximum string length that can be added to the cache before it is bypassed and the line in question along with all currently cached lines are pushed to the output file.
+        /// </summary>
+        public int CacheBypassLength { get; private set; }
+        /// <summary>
         /// The current <see cref="LogLevel"/> of this <see cref="Logger"/>. Log lines with a <see cref="LogLevel"/> lower than this will not be logged.<br />
         /// Defaults to <see cref="LogLevel.INFO"/>.
         /// </summary>
@@ -76,7 +80,7 @@ namespace Akiyama.Logging
         private bool Disposed = false;
 
         // TODO: docstring
-        public Logger(string name, LoggerType type = LoggerType.REALTIME, int cacheThreshold = 30, LogLevel defaultLevel = LogLevel.INFO, string logsDirectory = "./logs/", int maxOld = 5)
+        public Logger(string name, LoggerType type = LoggerType.REALTIME, int cacheThreshold = 30, LogLevel defaultLevel = LogLevel.INFO, string logsDirectory = "./logs/", int maxOld = 5, int cacheBypassLength = 5000)
         {
             this.Name = name;
             this.Type = type;
@@ -85,6 +89,7 @@ namespace Akiyama.Logging
             this.LogsDirectory = logsDirectory;
             this.LogFilePath = Path.Combine(Path.GetFullPath(this.LogsDirectory), $"{this.Name}.log");
             this.MaxOldFiles = maxOld;
+            this.CacheBypassLength = cacheBypassLength;
             Directory.CreateDirectory(Path.GetDirectoryName(this.LogFilePath));
             this.CycleFiles();
             if (this.Type == LoggerType.CACHED)
@@ -282,7 +287,7 @@ namespace Akiyama.Logging
             if (!this.DebugOutputDebugDisabled && Debugger.IsAttached) { System.Diagnostics.Debug.WriteLine(line); }
             if (!this.DebugOutputConsoleDisabled) { Console.WriteLine(line); }
 #endif
-            this.AddLineToCache(line);
+            this.AddLineToCache(line, msg.Length);
 
         }
 
@@ -290,10 +295,10 @@ namespace Akiyama.Logging
         /// Adds a log line to the list of lines that need writing to file for this <see cref="Logger"/>.
         /// </summary>
         /// <param name="line"></param>
-        private void AddLineToCache(string line)
+        private void AddLineToCache(string line, int msgLength)
         {
             this.OutputCache.Add(line);
-            if (!this._renameInProgress && (this.Type == LoggerType.REALTIME || this.OutputCache.Count >= this.CachedThreshold))
+            if (!this._renameInProgress && (this.Type == LoggerType.REALTIME || msgLength > this.CacheBypassLength || this.OutputCache.Count >= this.CachedThreshold))
             {
                 this.WritePendingLines();
             }
