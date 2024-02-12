@@ -41,9 +41,13 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Logger_old.cs" />
+    <Compile Include="Configuration\LoggerConfig.cs" />
+    <Compile Include="Configuration\OutputState.cs" />
+    <Compile Include="Exceptions\RenamedLogAlreadyExistsException.cs" />
     <Compile Include="Logger.cs" />
-    <Compile Include="LoggerType.cs" />
-    <Compile Include="LogLevel.cs" />
+    <Compile Include="Types\LoggerType.cs" />
+    <Compile Include="Levels\LogLevel.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

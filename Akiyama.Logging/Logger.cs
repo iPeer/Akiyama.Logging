@@ -1,5 +1,8 @@
-﻿using System;
+﻿using Akiyama.Logging.Configuration;
+using Akiyama.Logging.Levels;
+using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -10,238 +13,112 @@ namespace Akiyama.Logging
     public class Logger
     {
         /// <summary>
-        /// The name of this <see cref="Logger"/>.<br />This is also used as the file this log outputs to.
+        /// The <see cref="LoggerConfig"/> object for this <see cref="Logger"/>
         /// </summary>
-        public string Name { get; private set; }
-        /// <summary>
-        /// The type of this <see cref="Logger"/>. Can be either <see cref="LoggerType.REALTIME"/>, or <see cref="LoggerType.CACHED"/>.
-        /// </summary>
-        /// <remarks>
-        /// Loggers of type <see cref="LoggerType.REALTIME"/> will output their lines in real-time to their associated log file.<br />
-        /// Loggers of type <see cref="LoggerType.CACHED"/> will collect lines until either the number of saved lines matches or exceeds <see cref="Logger.CachedThreshold"/>, or until the Logger is being disassembled.
-        /// </remarks>
-        public LoggerType Type { get; private set; }
-        /// <summary>
-        /// Indicates the minimum number of log lines this <see cref="Logger"/> must have in its cache before it will write them to its respective log file.<br />
-        /// Lines will also be written to their respective log file when the class is being finalised.
-        /// </summary>
-        public int CachedThreshold { get; private set; }
-        /// <summary>
-        /// Indicates the maximum string length that can be added to the cache before it is bypassed and the line in question along with all currently cached lines are pushed to the output file.
-        /// </summary>
-        public int CacheBypassLength { get; private set; }
-        /// <summary>
-        /// The current <see cref="LogLevel"/> of this <see cref="Logger"/>. Log lines with a <see cref="LogLevel"/> lower than this will not be logged.<br />
-        /// Defaults to <see cref="LogLevel.INFO"/>.
-        /// </summary>
-        public LogLevel Level { get; private set; }
-        /// <summary>
-        /// The directory (relative or absolute) in which this <see cref="Logger"/>'s log file will be written.
-        /// </summary>
-        public string LogsDirectory { get; private set; }
-        /// <summary>
-        /// The complete path, including file name, to which this <see cref="Logger"/>'s log lines will be written.
-        /// </summary>
-        public string LogFilePath { get; private set; }
-        /// <summary>
-        /// Indicates the maximum number of old log files to be saved by this <see cref="Logger"/>.
-        /// </summary>
-        /// <remarks>
-        /// <para>
-        /// If this value is 0, no log files are retained when cycling files. If the log file exists, it will be deleted.
-        /// </para>
-        /// <para>
-        /// If this value is 1, the last log file will be renamed to <c>&lt;name&gt;.log.last</c>
-        /// </para>
-        /// <para>
-        /// If this value is 2 or greater, log files will be cycled through incremently as <c>&lt;name&gt;.log.&lt;num&gt;</c> where <c>num</c> is an integer of increasing value up until the value of this variable.
-        /// <br />If a file already exists with <c>num</c> equal to this variable, it is deleted.
-        /// </para>
-        /// </remarks>
-        public int MaxOldFiles { get; private set; }
+        public readonly LoggerConfig Config;
+        private readonly List<string> LineCache = new List<string>();
 
         /// <summary>
-        /// Holds a list of cached log messages that need to be written to file.
+        /// Returns the instance corresponding to the parent of this <see cref="Logger"/>. If this Logger is not a child, or has no parent, then it returns <see cref="null"/>.
         /// </summary>
-        private readonly List<string> OutputCache = new List<string>();
-
-        /// <summary>
-        /// If <b>true</b>, disables output to <see cref="System.Console"/> when compiled in debug mode.
-        /// </summary>
-        private bool DebugOutputConsoleDisabled = false;
-        /// <summary>
-        /// If <b>true</b>, disables output to <see cref="System.Diagnostics.Debug"/> when compiled in debug mode.<br />
-        /// <b>Note</b>: This is disabled (true) by default when running under .NET Framework.
-        /// </summary>
-        private bool DebugOutputDebugDisabled = System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription.StartsWith(".NET Framework");
-
-        private bool _renameInProgress = false;
-
-        // TODO: docstring
-        public Logger(string name, LoggerType type = LoggerType.CACHED, int cacheThreshold = 30, LogLevel defaultLevel = LogLevel.INFO, string logsDirectory = "./logs/", int maxOld = 5, int cacheBypassLength = 5000)
+        public Logger Parent
         {
-            this.Name = name;
-            this.Type = type;
-            this.CachedThreshold = cacheThreshold;
-            this.Level = defaultLevel;
-            this.LogsDirectory = logsDirectory;
-            this.LogFilePath = Path.Combine(Path.GetFullPath(this.LogsDirectory), $"{this.Name}.log");
-            this.MaxOldFiles = maxOld;
-            this.CacheBypassLength = cacheBypassLength;
-            Directory.CreateDirectory(Path.GetDirectoryName(this.LogFilePath));
-            this.CycleFiles();
-        }
-
-        /// <summary>
-        /// Sets the <see cref="LogLevel"/> of this <see cref="Logger"/>.
-        /// </summary>
-        /// <param name="level">The <see cref="LogLevel"/> this <see cref="Logger"/> should be set to.</param>
-        public void Setlevel(LogLevel level)
-        {
-            this.Level = level;
-            this.Log($"Log level changed to '{this.Level}'.", (LogLevel)999);
-        }
-        /// <inheritdoc cref="Logger.Setlevel(LogLevel)"/>
-        public void SetLevel(LogLevel level) => Setlevel(level);
-
-        /// <inheritdoc cref="Logger.SetName(string, bool)"/>
-        public void Rename(string name, bool renameFile = true) => SetName(name, renameFile);
-        /// <summary>
-        /// Changes the name of this <see cref="Logger"/> to the name specified.<br />
-        /// If <paramref name="renameFile"/> is true, the log file on disk will also be renamed (if it exists).
-        /// </summary>
-        /// <param name="name">The new name of the logger</param>
-        /// <param name="renameFile"></param>
-        public void SetName(string name, bool renameFile = true)
-        {
-            this._renameInProgress = true;
-            string oldName = this.Name;
-            this.Name = name;
-            string oldPath = this.LogFilePath;
-            this.LogFilePath = Path.Combine(Path.GetFullPath(this.LogsDirectory), $"{this.Name}.log");
-            if (renameFile && File.Exists(oldPath))
+            get
             {
-                File.Move(oldPath, this.LogFilePath);
+                return this.Config.Parent;
             }
-            this._renameInProgress = false;
-            this.Log($"Logger name was changed to '{this.Name}' (was '{oldName}').", (LogLevel)999);
+        }
+
+        private readonly List<Logger> _children = new List<Logger>();
+        /// <summary>
+        /// Returns a read-only list of Children for this <see cref="Logger"/>, if any.
+        /// </summary>
+        public ReadOnlyCollection<Logger> Children
+        {
+            get
+            {
+                return this._children.AsReadOnly();
+            }
+        }
+
+        public Logger(LoggerConfig config) 
+        {
+            this.Config = config;
         }
 
         /// <summary>
-        /// Causes this <see cref="Logger"/> to push all of its pending lines (if any) to its respective log file.
+        /// Creates a child of this <see cref="Logger"/>, using this Logger's config as a base.
         /// </summary>
-        private void WritePendingLines()
+        /// <param name="childName">The Name of the child <see cref="Logger"/>.</param>
+        /// <param name="shareFile">If <b>true</b>, this child will share an output with with it's parent <see cref="Logger"/>. <b>False</b> will mean this child logs to its own output file.</param>
+        /// <returns></returns>
+        public Logger CreateChild(string childName, bool shareFile = false)
         {
-            if (this.OutputCache.Count > 0)
+            LoggerConfig config = (LoggerConfig)Config.Clone();
+            config.SetAsChild(parent: this, shareFile: shareFile);
+            config.SetName($"{config.Name}.{childName}");
+            if (!shareFile) { config.UpdateLogPath(); }
+            Logger child = new Logger(config);
+            this._children.Add(child);
+            return child;
+        }
+
+        public void SetName(string name, bool keepFile = false)
+        {
+            try
             {
-                List<string> cache = this.OutputCache.ToList();
-                this.OutputCache.Clear();
-                using (StreamWriter sr = new StreamWriter(this.LogFilePath, append: true, encoding: Encoding.UTF8))
+                this.Config.SetName(name, out string oldName, keepFile);
+                this.LogInternal($"Logger name was changed to '{name}' (was '{oldName}').");
+            }
+            catch (Exception ex)
+            {
+                this.Error($"Logger rename failed to complete:", ex);
+            }
+        }
+
+        public void SetLevel(LogLevel level)
+        {
+            this.Config.SetLevel(level);
+            this.LogInternal($"Log level changed to '{level}'.");
+        }
+
+        [Conditional("BEBUG")]
+        public void SetDebugOutputStates(OutputState console = OutputState.ENABLED, OutputState debug = OutputState.ENABLED)
+        {
+            this.Config.SetDebutOutputStates(console, debug);
+        }
+
+        private void WriteCachedLinesToFile()
+        {
+            if (this.LineCache.Count > 0)
+            {
+                List<string> cache = this.LineCache.ToList();
+                this.LineCache.Clear();
+                using (StreamWriter w = new StreamWriter(this.Config.LogPath, append: true, encoding: Encoding.UTF8))
                 {
-                    sr.Write(string.Join("\n", cache)+"\n");
-                    cache.Clear();
+                    w.Write(string.Join("\n", cache)+"\n");
                 }
+                cache.Clear();
             }
         }
 
-        /// <summary>
-        /// Sets which output methods are used for debug builds<br />
-        /// <b>Note</b>: This function is only available when running under a debug context. Calls to this function when <b>not</b> under debug will do nothing.
-        /// </summary>
-        /// <param name="console">Whether output to <see cref="System.Console"/> is enabled.</param>
-        /// <param name="debug">Whether output to <see cref="System.Diagnostics.Debug"/> is enabled.<br /><b>Note</b>: When running under .NET Framework, this defaults to disabled. Additionally, this setting is ignored if no debugger is detected.</param>
-        [Conditional("DEBUG")]
-        public void SupressDebugOutput(bool console = false, bool debug = false)
+        internal void AddLineToCache(string line, int rawStringLength)
         {
-            this.DebugOutputConsoleDisabled = console;
-            this.DebugOutputDebugDisabled = debug;
-        }
-
-        /// <summary>
-        /// Causes this <see cref="Logger"/> to cycle out its log files if <see cref="Logger.MaxOldFiles"/> is not 0.
-        /// </summary>
-        /// <remarks>
-        /// <para>
-        /// If this <see cref="Logger.MaxOldFiles"/> is 0, no log files are retained when cycling files. If the log file exists, it will be deleted.
-        /// </para>
-        /// <para>
-        /// If this <see cref="Logger.MaxOldFiles"/> is 1, the last log file will be renamed to <c>&lt;name&gt;.log.last</c>
-        /// </para>
-        /// <para>
-        /// If this <see cref="Logger.MaxOldFiles"/> is 2 or greater, log files will be cycled through incremently as <c>&lt;name&gt;.log.&lt;num&gt;</c> where <c>num</c> is an integer of increasing value up until the value of <see cref="Logger.MaxOldFiles"/>.
-        /// <br />If a file already exists with <c>num</c> equal to <see cref="Logger.MaxOldFiles"/>, it is deleted.
-        /// </para>
-        /// </remarks>
-        private void CycleFiles()
-        {
-            if (this.MaxOldFiles == 0)
+            // This is very similar to the old version (because it stills works for what we're doing here)
+            this.LineCache.Add(line);
+            if (this.Config.Type == Types.LoggerType.REALTIME || this.LineCache.Count >= this.Config.CacheSize || rawStringLength >= this.Config.CacheBypassLength)
             {
-                if (File.Exists(this.LogFilePath))
-                    File.Delete(this.LogFilePath);
-            }
-            else if (this.MaxOldFiles == 1)
-            {
-                if (File.Exists($"{this.LogFilePath}.last"))
-                {
-                    File.Delete($"{this.LogFilePath}.last");
-                }
-                if (File.Exists(this.LogFilePath))
-                    File.Move(this.LogFilePath, $"{this.LogFilePath}.last");
-            }
-            else
-            {
-                for (int x = this.MaxOldFiles; x > 0; x--)
-                {
-                    string fileName = $"{this.LogFilePath}.{x}";
-                    if (x == this.MaxOldFiles)
-                    {
-                        if (File.Exists(fileName))
-                            File.Delete(fileName);
-                        continue;
-                    }
-
-                    if (!File.Exists(fileName))
-                        continue;
-                    if (File.Exists(fileName))
-                    {
-                        string newPath = Path.ChangeExtension(fileName, (x + 1).ToString());
-                        File.Move(fileName, newPath);
-                    }
-
-                }
-                if (File.Exists(this.LogFilePath))
-                {
-                    File.Move(this.LogFilePath, $"{this.LogFilePath}.1");
-                }
+                this.WriteCachedLinesToFile();
             }
         }
 
-        /// <summary>
-        /// Logs a message with a <see cref="LogLevel"/> of <see cref="LogLevel.DEBUG"/>.
-        /// </summary>
-        /// <param name="str">The <see cref="String"/> to log.</param>
-        /// <param name="fillers"><c>(optional)</c> The values you wish to use for string formatting. See <see href="https://learn.microsoft.com/en-us/dotnet/api/system.string.format?view=netframework-4.7.2"/>.</param>
-        public void Debug(string str, params object[] fillers) => this.Log(str, LogLevel.DEBUG, fillers);
-        /// <summary>
-        /// Logs a message with a <see cref="LogLevel"/> of <see cref="LogLevel.INFO"/>.
-        /// </summary>
-        /// <param name="str">The <see cref="String"/> to log.</param>
-        /// <param name="fillers"><c>(optional)</c> The values you wish to use for string formatting. See <see href="https://learn.microsoft.com/en-us/dotnet/api/system.string.format?view=netframework-4.7.2"/>.</param>
-        public void Info(string str, params object[] fillers) => this.Log(str, LogLevel.INFO, fillers);
-        /// <summary>
-        /// Logs a message with a <see cref="LogLevel"/> of <see cref="LogLevel.WARNING"/>.
-        /// </summary>
-        /// <param name="str">The <see cref="String"/> to log.</param>
-        /// <param name="fillers"><c>(optional)</c> The values you wish to use for string formatting. See <see href="https://learn.microsoft.com/en-us/dotnet/api/system.string.format?view=netframework-4.7.2"/>.</param>
-        public void Warning(string str, params object[] fillers) => this.Log(str, LogLevel.WARNING, fillers);
-        /// <summary>
-        /// Logs a message with a <see cref="LogLevel"/> of <see cref="LogLevel.ERROR"/>.
-        /// </summary>
-        /// <param name="str">The <see cref="String"/> to log.</param>
-        /// <param name="fillers"><c>(optional)</c> The values you wish to use for string formatting. See <see href="https://learn.microsoft.com/en-us/dotnet/api/system.string.format?view=netframework-4.7.2"/>.</param>
-        public void Error(string str, params object[] fillers) => this.Log(str, LogLevel.ERROR, fillers);
-        /// <inheritdoc cref="Logger.Info(string, object[])"/>
-        public void Log(string str, params object[] fillers) => this.Log(str, LogLevel.INFO, fillers);
+        internal void LogInternal(string message, params object[] fillers) => Log(message, (LogLevel)999, fillers);
+        public void Log(string message, params object[] fillers) => Log(message, LogLevel.INFO, fillers);
+        public void Warning(string message, params object[] fillers) => Log(message, LogLevel.WARNING, fillers);
+        public void Debug(string message, params object[] fillers) => Log(message, LogLevel.DEBUG, fillers);
+        public void Error(string message, Exception exception, params object[] fillers) => Error($"{message}\n{exception.Message}\n{exception.StackTrace}", fillers);
+        public void Error(Exception exception) => Error($"{exception.Message}\n{exception.StackTrace}", new object[0]);
+        public void Error(string message, params object[] fillers) => Log(message, LogLevel.ERROR, fillers);
         /// <summary>
         /// Logs a message.
         /// </summary>
@@ -251,7 +128,7 @@ namespace Akiyama.Logging
         private void Log(string str, LogLevel level, params object[] fillers)
         {
 
-            if (level < this.Level) { return; }
+            if (level < this.Config.Level) { return; }
 
             string msg = string.Format(str, fillers);
             string prefix = "INFO";
@@ -274,39 +151,21 @@ namespace Akiyama.Logging
                     break;
             }
 
-            string time = DateTime.Now.ToString("yyyy-MM-dd HH\\:mm\\:ss");
-            string line = string.Empty;
+            string time = DateTime.Now.ToString(this.Config.DateTimeFormat);
 
-            line = string.Format("[{0}] [{1}] {2}: {3}", time, prefix.PadRight(7, ' '), this.Name, msg);
+            string line = this.Config.LineFormat.Replace("<time>", time)
+                                                .Replace("<level>", prefix.PadRight(7, ' '))
+                                                .Replace("<name>", this.Config.Name)
+                                                .Replace("<message>", msg);
+            //line = string.Format("[{0}] [{1}] {2}: {3}", time, prefix.PadRight(7, ' '), this.Config.Name, msg);
 #if DEBUG
-            if (!this.DebugOutputDebugDisabled && Debugger.IsAttached) { System.Diagnostics.Debug.WriteLine(line); }
-            if (!this.DebugOutputConsoleDisabled) { Console.WriteLine(line); }
+            if (!this.Config.DebugOutputDisabled && Debugger.IsAttached) { System.Diagnostics.Debug.WriteLine(line); }
+            if (!this.Config.ConsoleOutputDisabled) { Console.WriteLine(line); }
 #endif
-            this.AddLineToCache(line, msg.Length);
+            if (this.Config.IsChild && this.Config.ShareFileWithParent) { this.Parent.AddLineToCache(line, msg.Length); }
+            else { this.AddLineToCache(line, msg.Length); }
 
         }
-
-        /// <summary>
-        /// Adds a log line to the list of lines that need writing to file for this <see cref="Logger"/>.
-        /// </summary>
-        /// <param name="line"></param>
-        private void AddLineToCache(string line, int msgLength)
-        {
-            this.OutputCache.Add(line);
-            if (!this._renameInProgress && (this.Type == LoggerType.REALTIME || msgLength > this.CacheBypassLength || this.OutputCache.Count >= this.CachedThreshold))
-            {
-                this.WritePendingLines();
-            }
-        }
-
-        /// <summary>
-        /// Called when the class is being finalised. Tells the <see cref="Logger"/> to write all pending lines to file immediately.
-        /// <br /><see href="https://learn.microsoft.com/en-us/dotnet/csharp/programming-guide/classes-and-structs/finalizers"/>
-        /// </summary>
-        ~Logger()
-        {
-            this.WritePendingLines();
-        }
-
     }
+
 }

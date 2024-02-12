@@ -1,4 +1,4 @@
-﻿namespace Akiyama.Logging
+﻿namespace Akiyama.Logging.Types
 {
     public enum LoggerType
     {
