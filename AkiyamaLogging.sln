@@ -5,6 +5,16 @@ VisualStudioVersion = 17.7.34031.279
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Akiyama.Logging", "Akiyama.Logging\Akiyama.Logging.csproj", "{53907F6E-C90B-47BE-BD99-33409173D9CD}"
 EndProject
+Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "Logging.Core", "Logging.Core\Logging.Core.shproj", "{831982AE-F16D-414D-919F-72D17487D269}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Akiyama.Logging.NETFramework", "Akiyama.Logging.NETFramework\Akiyama.Logging.NETFramework.csproj", "{329F04D0-5888-48CF-BAFF-10B760AE46E6}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Akiyama.Logging.NET", "Akiyama.Logging.NET\Akiyama.Logging.NET.csproj", "{DF6B2D8D-5A09-478B-962D-7E4846FD99E9}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Akiyama.Logging.NET.Windows", "Akiyama.Logging.NET.Windows\Akiyama.Logging.NET.Windows.csproj", "{1802931F-FE39-45F2-AB56-BDC4F74D2142}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tests.NF", "Tests.NF\Tests.NF.csproj", "{B0E4FDD6-E363-4DA1-8E9B-2AD76651AF61}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,11 +25,33 @@ Global
 		{53907F6E-C90B-47BE-BD99-33409173D9CD}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{53907F6E-C90B-47BE-BD99-33409173D9CD}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{53907F6E-C90B-47BE-BD99-33409173D9CD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{329F04D0-5888-48CF-BAFF-10B760AE46E6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{329F04D0-5888-48CF-BAFF-10B760AE46E6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{329F04D0-5888-48CF-BAFF-10B760AE46E6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{329F04D0-5888-48CF-BAFF-10B760AE46E6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DF6B2D8D-5A09-478B-962D-7E4846FD99E9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DF6B2D8D-5A09-478B-962D-7E4846FD99E9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DF6B2D8D-5A09-478B-962D-7E4846FD99E9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DF6B2D8D-5A09-478B-962D-7E4846FD99E9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1802931F-FE39-45F2-AB56-BDC4F74D2142}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1802931F-FE39-45F2-AB56-BDC4F74D2142}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1802931F-FE39-45F2-AB56-BDC4F74D2142}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1802931F-FE39-45F2-AB56-BDC4F74D2142}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B0E4FDD6-E363-4DA1-8E9B-2AD76651AF61}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B0E4FDD6-E363-4DA1-8E9B-2AD76651AF61}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B0E4FDD6-E363-4DA1-8E9B-2AD76651AF61}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B0E4FDD6-E363-4DA1-8E9B-2AD76651AF61}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {51438FCA-9453-45AF-969F-DD3D2EA52163}
+	EndGlobalSection
+	GlobalSection(SharedMSBuildProjectFiles) = preSolution
+		Logging.Core\Logging.Core.projitems*{1802931f-fe39-45f2-ab56-bdc4f74d2142}*SharedItemsImports = 5
+		Logging.Core\Logging.Core.projitems*{329f04d0-5888-48cf-baff-10b760ae46e6}*SharedItemsImports = 4
+		Logging.Core\Logging.Core.projitems*{831982ae-f16d-414d-919f-72d17487d269}*SharedItemsImports = 13
+		Logging.Core\Logging.Core.projitems*{df6b2d8d-5a09-478b-962d-7e4846fd99e9}*SharedItemsImports = 5
 	EndGlobalSection
 EndGlobal

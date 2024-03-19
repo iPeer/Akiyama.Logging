@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <RootNamespace>Akiyama.Logging</RootNamespace>
+    <AssemblyName>Akiyama.Logging</AssemblyName>
+  </PropertyGroup>
+
+  <Import Project="..\Logging.Core\Logging.Core.projitems" Label="Shared" />
+
+</Project>
