@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net6.0-windows10.0.17763.0</TargetFramework>
+    <TargetFramework>net6.0-windows</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
@@ -9,6 +9,6 @@
     <RootNamespace>Akiyama.Logging</RootNamespace>
   </PropertyGroup>
 
-  <Import Project="..\Logging.Core\Logging.Core.projitems" Label="Shared" />
+  <Import Project="..\Akiyama.Logging.Core\Akiyama.Logging.Core.projitems" Label="Shared" />
 
 </Project>

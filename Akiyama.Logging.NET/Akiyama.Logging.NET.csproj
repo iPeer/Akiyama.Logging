@@ -9,6 +9,6 @@
     <AssemblyName>Akiyama.Logging</AssemblyName>
   </PropertyGroup>
 
-  <Import Project="..\Logging.Core\Logging.Core.projitems" Label="Shared" />
+  <Import Project="..\Akiyama.Logging.Core\Akiyama.Logging.Core.projitems" Label="Shared" />
 
 </Project>

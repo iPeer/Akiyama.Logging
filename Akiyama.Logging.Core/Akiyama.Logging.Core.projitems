@@ -15,7 +15,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)Configuration\OutputState.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Constants\Constants.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Levels\LogLevel.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Loggers\FileLogger.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Loggers\Logger.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Types\LoggerType.cs" />
   </ItemGroup>

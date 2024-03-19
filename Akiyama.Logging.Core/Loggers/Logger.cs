@@ -7,11 +7,11 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
-using System.Text;
+using System.Text.RegularExpressions;
 
 namespace Akiyama.Logging.Loggers
 {
-    public abstract class Logger
+    public class Logger
     {
 
         /// <summary>
@@ -47,11 +47,56 @@ namespace Akiyama.Logging.Loggers
         {
             this.Config = config;
             this.TrySetUpColourConsole();
+            this.CycleFiles();
+        }
+
+        private void CycleFiles()
+        {
+            if (this.Config.MaxCycledFiles == 0)
+            {
+                if (File.Exists(this.Config.LogPath))
+                    File.Delete(this.Config.LogPath);
+            }
+            else if (this.Config.MaxCycledFiles == 1)
+            {
+                if (File.Exists(Path.Combine(this.Config.LogDirectory, $"{Path.GetFileNameWithoutExtension(this.Config.LogPath)}.previous{Path.GetExtension(this.Config.LogPath)}")))
+                {
+                    File.Delete(Path.Combine(this.Config.LogDirectory, $"{Path.GetFileNameWithoutExtension(this.Config.LogPath)}.previous{Path.GetExtension(this.Config.LogPath)}"));
+                }
+                if (File.Exists(this.Config.LogPath))
+                    File.Move(this.Config.LogPath, Path.Combine(this.Config.LogDirectory, $"{Path.GetFileNameWithoutExtension(this.Config.LogPath)}.previous{Path.GetExtension(this.Config.LogPath)}"));
+            }
+            else
+            {
+                for (int x = this.Config.MaxCycledFiles; x > 0; x--)
+                {
+                    string fileName = Path.Combine(this.Config.LogDirectory, $"{Path.GetFileNameWithoutExtension(this.Config.LogPath)}.{x}{Path.GetExtension(this.Config.LogPath)}");
+                    if (x == this.Config.MaxCycledFiles)
+                    {
+                        if (File.Exists(fileName))
+                            File.Delete(fileName);
+                        continue;
+                    }
+
+                    if (!File.Exists(fileName))
+                        continue;
+                    if (File.Exists(fileName))
+                    {
+                        string newPath = Path.Combine(this.Config.LogDirectory, $"{Path.GetFileNameWithoutExtension(this.Config.LogPath)}.{x + 1}{Path.GetExtension(this.Config.LogPath)}");
+                        File.Move(fileName, newPath);
+                    }
+
+                }
+                if (File.Exists(this.Config.LogPath))
+                {
+                    File.Move(this.Config.LogPath, Path.Combine(this.Config.LogDirectory, $"{Path.GetFileNameWithoutExtension(this.Config.LogPath)}.1{Path.GetExtension(this.Config.LogPath)}"));
+                }
+            }
         }
 
         private void TrySetUpColourConsole()
         {
-            if (this.Config.Formatter != LogFormatter.DEFAULT_COLOUR) return;
+            if (this.Config.Formatter != LogFormatter.COLOUR) return;
 #if (WINDOWS || NETFRAMEWORK)
             var handle = GetStdHandle(STD_OUTPUT_HANDLE);
             bool ready = true;
@@ -121,7 +166,7 @@ namespace Akiyama.Logging.Loggers
             {
                 List<string> cache = this.LineCache.ToList();
                 this.LineCache.Clear();
-                using (StreamWriter w = new StreamWriter(this.Config.LogPath, append: true, encoding: Encoding.UTF8))
+                using (StreamWriter w = new StreamWriter(this.Config.LogPath, append: true, encoding: this.Config.Encoding))
                 {
                     w.Write(string.Join("\n", cache) + "\n");
                 }
@@ -153,7 +198,7 @@ namespace Akiyama.Logging.Loggers
         /// <param name="str">The <see cref="String"/> to log.</param>
         /// <param name="level">The <see cref="LogLevel"/> to log this message as.</param>
         /// <param name="fillers"><c>(optional)</c> The values you wish to use for string formatting. See <see href="https://learn.microsoft.com/en-us/dotnet/api/system.string.format?view=netframework-4.7.2"/>.</param>
-        protected virtual void Log(string str, LogLevel level, params object[] fillers)
+        protected void Log(string str, LogLevel level, params object[] fillers)
         {
 
             if (level < this.Config.Level) { return; }
@@ -168,10 +213,12 @@ namespace Akiyama.Logging.Loggers
                                                 .Replace("<name>", this.Config.Name)
                                                 .Replace("<message>", msg);
             //line = string.Format("[{0}] [{1}] {2}: {3}", time, prefix.PadRight(7, ' '), this.Config.Name, msg);
-#if DEBUG
-            if (!this.Config.DebugOutputDisabled && Debugger.IsAttached) { System.Diagnostics.Debug.WriteLine(line); }
+
+            if (!this.Config.DebugOutputDisabled && Debugger.IsAttached) { System.Diagnostics.Debug.WriteLine(Regex.Replace(line, "\u001b\\[\\d{1,2}m", "")); }
             if (!this.Config.ConsoleOutputDisabled) { Console.WriteLine(line); }
-#endif
+
+
+            if (this.Config.Formatter == LogFormatter.COLOUR) { line = Regex.Replace(line, "\u001b\\[\\d{1,2}m", ""); }
             if (this.Config.IsChild && this.Config.ShareFileWithParent) { this.Parent.AddLineToCache(line, msg.Length); }
             else { this.AddLineToCache(line, msg.Length); }
 
@@ -223,7 +270,7 @@ namespace Akiyama.Logging.Loggers
                         return "--";
                 }
             }
-            else if (this.Config.Formatter == LogFormatter.DEFAULT_COLOUR)
+            else if (this.Config.Formatter == LogFormatter.COLOUR)
             {
                 switch (level)
                 {
